@@ -6,7 +6,7 @@ A minimal terminal writing app in Go with Vim-style editing.
 
 - Full-screen, distraction-free writing surface.
 - Centered writing column (`72` chars wide).
-- Dark, uniform background with configurable colors in one place ([`appearance.go`](appearance.go)).
+- Dark, uniform background with configurable colors in one place ([`internal/editor/appearance.go`](internal/editor/appearance.go)).
 - Vim-style modes with bottom-left indicator (`N`, `I`, `V`, `L`).
 - Live word counter on the bottom-right (`<count>w`) using the same style color as the mode indicator.
 - Live Markdown rendering via Glamour for non-active lines.
@@ -26,9 +26,9 @@ A minimal terminal writing app in Go with Vim-style editing.
 ## Run
 
 ```bash
-go run .
-go run . notes.md
-go run . /path/to/notes.txt
+go run ./cmd/simple
+go run ./cmd/simple notes.md
+go run ./cmd/simple /path/to/notes.txt
 ```
 
 Startup file loading accepts a single `.md` or `.txt` file path.

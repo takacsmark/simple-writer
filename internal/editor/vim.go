@@ -1,4 +1,4 @@
-package main
+package editor
 
 func (e *editor) handleInsert(k key) bool {
 	switch k.t {

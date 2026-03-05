@@ -1,4 +1,4 @@
-package main
+package editor
 
 func (e *editor) wordCount() int {
 	count := 0

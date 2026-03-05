@@ -1,4 +1,4 @@
-package main
+package editor
 
 import (
 	"bufio"
@@ -1039,18 +1039,16 @@ func max(a, b int) int {
 	return b
 }
 
-func main() {
+func Run(args []string) error {
 	ed := newEditor()
-	if err := ed.loadFromArgs(os.Args[1:]); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to open file: %v\n", err)
-		os.Exit(1)
+	if err := ed.loadFromArgs(args); err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
 	}
 
 	fd := int(os.Stdin.Fd())
 	state, err := term.MakeRaw(fd)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to enter raw mode: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to enter raw mode: %w", err)
 	}
 	defer term.Restore(fd, state)
 
@@ -1112,7 +1110,7 @@ func main() {
 				}
 			}
 			if quit {
-				return
+				return nil
 			}
 			ed.updateSize(fd)
 			ed.ensureCursorVisible()
@@ -1125,8 +1123,11 @@ func main() {
 			_, _ = stdout.WriteString(ed.renderFrame())
 			_ = stdout.Flush()
 			flashTimer = ed.nextFlashTimer(time.Now())
-		case <-errs:
-			return
+		case err := <-errs:
+			if err != nil {
+				return err
+			}
+			return nil
 		}
 	}
 }

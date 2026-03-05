@@ -12,6 +12,7 @@ A minimal terminal writing app in Go with Vim-style editing.
 - Live Markdown rendering via Glamour for non-active lines.
 - Top-of-file frontmatter support (`---` YAML / `+++` TOML) with syntax-aware rendering.
 - Vim-style command line in Normal mode: `:` opens a centered one-line prompt (`>`), `Esc` closes it.
+- Save support via command line: `:w` saves current file, `:w <path>` saves to a new `.md`/`.txt` file.
 - Active line is always raw in Insert/Normal mode.
 - In Visual/Visual Line mode, all selected lines render raw.
 - Markdown tables render in both edit and preview flows; selecting any table line makes the whole table raw.
@@ -88,3 +89,10 @@ Supported `:` commands:
 - `:quit`
 - `:qa`
 - `:qa!`
+- `:w` (save to current file name)
+- `:w <path>` (save to provided `.md`/`.txt` path and set it as current file)
+
+Save notes:
+
+- `:w` on an unnamed buffer shows an error until you provide a file name with `:w <path>`.
+- Save errors are shown in red in the command bar.

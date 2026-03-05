@@ -27,9 +27,8 @@ func (e *editor) openFile(path string) error {
 		return errors.New("directories are not supported")
 	}
 
-	ext := strings.ToLower(filepath.Ext(path))
-	if ext != ".txt" && ext != ".md" {
-		return fmt.Errorf("unsupported file type %q (allowed: .txt, .md)", ext)
+	if !isSupportedTextFilePath(path) {
+		return fmt.Errorf("unsupported file type %q (allowed: .txt, .md)", strings.ToLower(filepath.Ext(path)))
 	}
 
 	data, err := os.ReadFile(path)
@@ -57,9 +56,16 @@ func (e *editor) openFile(path string) error {
 	e.scroll = 0
 	e.normalPending = 0
 	e.flashLine = -1
+	e.filePath = path
 	e.commandLineActive = false
 	e.commandLine = e.commandLine[:0]
 	e.commandCol = 0
+	e.commandError = ""
 	e.setMode(modeNormal)
 	return nil
+}
+
+func isSupportedTextFilePath(path string) bool {
+	ext := strings.ToLower(filepath.Ext(path))
+	return ext == ".txt" || ext == ".md"
 }

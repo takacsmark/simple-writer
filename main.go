@@ -91,9 +91,11 @@ type editor struct {
 	flashUntil        time.Time
 	style             styleCodes
 	markdown          *markdownRenderer
+	filePath          string
 	commandLineActive bool
 	commandLine       []rune
 	commandCol        int
+	commandError      string
 }
 
 func newEditor() *editor {

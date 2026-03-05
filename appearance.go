@@ -19,6 +19,7 @@ type appearanceConfig struct {
 	ModeIndicator rgb
 	CommandText   rgb
 	CommandPrompt rgb
+	CommandError  rgb
 }
 
 type styleCodes struct {
@@ -28,6 +29,7 @@ type styleCodes struct {
 	fgModeIndicator string
 	fgCommandText   string
 	fgCommandPrompt string
+	fgCommandError  string
 }
 
 var DefaultAppearance = appearanceConfig{
@@ -37,6 +39,7 @@ var DefaultAppearance = appearanceConfig{
 	ModeIndicator: rgb{R: 109, G: 109, B: 114},
 	CommandText:   rgb{R: 223, G: 225, B: 228},
 	CommandPrompt: rgb{R: 173, G: 176, B: 182},
+	CommandError:  rgb{R: 231, G: 98, B: 98},
 }
 
 func (c appearanceConfig) toStyleCodes() styleCodes {
@@ -47,6 +50,7 @@ func (c appearanceConfig) toStyleCodes() styleCodes {
 		fgModeIndicator: ansiFgRGB(c.ModeIndicator),
 		fgCommandText:   ansiFgRGB(c.CommandText),
 		fgCommandPrompt: ansiFgRGB(c.CommandPrompt),
+		fgCommandError:  ansiFgRGB(c.CommandError),
 	}
 }
 
@@ -424,6 +428,10 @@ func (e *editor) renderFrame() string {
 			cmdWidth := e.commandLineWidth()
 			cmdStart := e.commandLineStartCol(cmdWidth)
 			display, cursorOffset := e.commandLineDisplay(cmdWidth)
+			if e.commandError != "" {
+				display = e.commandLineErrorDisplay(cmdWidth)
+				cursorOffset = 2
+			}
 			b.WriteString(fmt.Sprintf("\x1b[%d;%dH", e.height, cmdStart))
 			b.WriteString(e.style.bgSelection)
 			displayRunes := []rune(display)
@@ -432,7 +440,11 @@ func (e *editor) renderFrame() string {
 				b.WriteRune(displayRunes[0])
 			}
 			if len(displayRunes) > 1 {
-				b.WriteString(e.style.fgCommandText)
+				if e.commandError != "" {
+					b.WriteString(e.style.fgCommandError)
+				} else {
+					b.WriteString(e.style.fgCommandText)
+				}
 				b.WriteString(string(displayRunes[1:]))
 			}
 			b.WriteString(e.style.bgDark)

@@ -36,6 +36,9 @@ func TestLoadFromArgsLoadsTxtFile(t *testing.T) {
 	if got := string(e.lines[1]); got != "world" {
 		t.Fatalf("line 1: got %q, want %q", got, "world")
 	}
+	if e.filePath != path {
+		t.Fatalf("filePath: got %q, want %q", e.filePath, path)
+	}
 }
 
 func TestLoadFromArgsLoadsMdFile(t *testing.T) {

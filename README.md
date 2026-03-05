@@ -25,48 +25,45 @@ Simple is a terminal app with Vim bindings, markdown and code highlights.
 - Undo/redo, line/word motions, and clipboard-aware yank/paste.
 - Cross-platform clipboard support (macOS, Linux Wayland/X11, Windows).
 
-## Run
+## Install
+
+### 1) Homebrew (recommended)
 
 ```bash
+brew tap takacsmark/tap
+brew install takacsmark/tap/simple-writer
+```
+
+This installs the `simple` binary.
+
+### 2) Clone repo and run
+
+```bash
+git clone https://github.com/takacsmark/simple-writer.git
+cd simple-writer
 go run ./cmd/simple
 go run ./cmd/simple notes.md
 go run ./cmd/simple /path/to/notes.txt
 ```
 
 Startup file loading accepts a single `.md` or `.txt` file path.
-
 On startup the editor opens in **Normal mode** (`N`).
 If no file is passed, it starts with an empty buffer.
 Only one file can be opened at startup (directories and other extensions are rejected).
 
-## Deployment & Install
+### 3) GitHub release tarballs
 
-GitHub Releases publish versioned tarballs for:
+Release assets:
+
+- `simple-writer_<version>_<os>_<arch>.tar.gz`
+- `SHA256SUMS.txt`
+
+Supported targets:
 
 - `darwin/amd64`
 - `darwin/arm64`
 - `linux/amd64`
 - `linux/arm64`
-
-Asset format:
-
-- `simple-writer_<version>_<os>_<arch>.tar.gz`
-- `SHA256SUMS.txt`
-
-Example install (replace version/target):
-
-```bash
-VERSION=v0.1.0
-OS=darwin
-ARCH=arm64
-ASSET="simple-writer_${VERSION}_${OS}_${ARCH}.tar.gz"
-
-curl -L -o "${ASSET}" "https://github.com/<owner>/<repo>/releases/download/${VERSION}/${ASSET}"
-curl -L -o SHA256SUMS.txt "https://github.com/<owner>/<repo>/releases/download/${VERSION}/SHA256SUMS.txt"
-shasum -a 256 -c SHA256SUMS.txt
-tar -xzf "${ASSET}"
-./simple
-```
 
 ## Vim Commands
 

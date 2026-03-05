@@ -337,6 +337,7 @@ func (e *editor) renderFrame() string {
 
 	for y := 0; y < body; y++ {
 		visualIdx := e.scroll + y
+		base := e.style.bgDark + e.style.fgText
 		b.WriteString(fmt.Sprintf("\x1b[%d;1H", y+1))
 		b.WriteString(e.style.bgDark)
 		b.WriteString(e.style.fgText)
@@ -349,7 +350,6 @@ func (e *editor) renderFrame() string {
 			if row.kind == lineRenderRaw {
 				b.WriteString(e.renderWrappedSegment(row.lineIndex, row.rawStart, row.rawChunk, cw, flashLine))
 			} else {
-				base := e.style.bgDark + e.style.fgText
 				b.WriteString(applyBaseStyleAfterReset(row.rendered, base))
 				b.WriteString(base)
 			}
@@ -357,6 +357,9 @@ func (e *editor) renderFrame() string {
 			b.WriteString(strings.Repeat(" ", cw))
 		}
 
+		// Always restore base style before outer padding so highlights stay
+		// inside the centered writing area.
+		b.WriteString(base)
 		if rightPad > 0 {
 			b.WriteString(strings.Repeat(" ", rightPad))
 		}
@@ -372,13 +375,30 @@ func (e *editor) renderFrame() string {
 		case modeVisualLine:
 			indicator = "L"
 		}
+		counter := fmt.Sprintf("%dw", e.wordCount())
+		counterRunes := []rune(counter)
+		maxCounter := max(0, e.width-1)
+		if len(counterRunes) > maxCounter {
+			counterRunes = counterRunes[len(counterRunes)-maxCounter:]
+		}
+		counterStart := e.width - len(counterRunes)
+		if counterStart < 1 {
+			counterStart = 1
+		}
+
 		b.WriteString(fmt.Sprintf("\x1b[%d;1H", e.height))
 		b.WriteString(e.style.bgDark)
 		b.WriteString(e.style.fgModeIndicator)
 		b.WriteString(indicator)
 		if e.width > 1 {
-			b.WriteString(e.style.fgText)
-			b.WriteString(strings.Repeat(" ", e.width-1))
+			if counterStart > 1 {
+				b.WriteString(e.style.fgText)
+				b.WriteString(strings.Repeat(" ", counterStart-1))
+			}
+			if len(counterRunes) > 0 {
+				b.WriteString(e.style.fgModeIndicator)
+				b.WriteString(string(counterRunes))
+			}
 		}
 	}
 

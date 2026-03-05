@@ -11,6 +11,7 @@ func TestSaveBufferUsesExistingFilePath(t *testing.T) {
 	path := filepath.Join(dir, "note.md")
 	e := newEditor()
 	e.filePath = path
+	e.dirty = true
 	e.lines = [][]rune{[]rune("hello"), []rune("world")}
 
 	if err := e.saveBuffer(""); err != nil {
@@ -22,6 +23,9 @@ func TestSaveBufferUsesExistingFilePath(t *testing.T) {
 	}
 	if got := string(data); got != "hello\nworld" {
 		t.Fatalf("saved content mismatch: got %q", got)
+	}
+	if e.dirty {
+		t.Fatalf("successful save should clear dirty")
 	}
 }
 
@@ -51,9 +55,13 @@ func TestSaveBufferRejectsUnsupportedExtension(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "out.go")
 	e := newEditor()
+	e.dirty = true
 	e.lines = [][]rune{[]rune("alpha")}
 
 	if err := e.saveBuffer(path); err == nil {
 		t.Fatalf("expected unsupported extension error")
+	}
+	if !e.dirty {
+		t.Fatalf("failed save should keep dirty true")
 	}
 }

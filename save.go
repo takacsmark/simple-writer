@@ -28,6 +28,7 @@ func (e *editor) saveBuffer(pathArg string) error {
 		return err
 	}
 	e.filePath = path
+	e.dirty = false
 	return nil
 }
 

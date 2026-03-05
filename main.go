@@ -70,6 +70,7 @@ type editorState struct {
 	lines [][]rune
 	row   int
 	col   int
+	dirty bool
 }
 
 type editor struct {
@@ -92,6 +93,7 @@ type editor struct {
 	style             styleCodes
 	markdown          *markdownRenderer
 	filePath          string
+	dirty             bool
 	commandLineActive bool
 	commandLine       []rune
 	commandCol        int
@@ -121,6 +123,7 @@ func (e *editor) snapshot() editorState {
 		lines: cloneLines(e.lines),
 		row:   e.row,
 		col:   e.col,
+		dirty: e.dirty,
 	}
 }
 
@@ -132,6 +135,7 @@ func (e *editor) restore(s editorState) {
 	} else {
 		e.col = min(max(0, s.col), len(e.lines[e.row])-1)
 	}
+	e.dirty = s.dirty
 	e.setMode(modeNormal)
 }
 
@@ -330,6 +334,7 @@ func (e *editor) insertRune(r rune) {
 	line[e.col] = r
 	e.lines[e.row] = line
 	e.col++
+	e.dirty = true
 }
 
 func (e *editor) insertNewline() {
@@ -352,6 +357,7 @@ func (e *editor) insertNewline() {
 
 	e.row++
 	e.col = 0
+	e.dirty = true
 }
 
 func (e *editor) backspace() {
@@ -361,6 +367,7 @@ func (e *editor) backspace() {
 		line = append(line[:e.col-1], line[e.col:]...)
 		e.lines[e.row] = line
 		e.col--
+		e.dirty = true
 		return
 	}
 
@@ -374,6 +381,7 @@ func (e *editor) backspace() {
 	e.lines = append(e.lines[:e.row], e.lines[e.row+1:]...)
 	e.row--
 	e.col = prevLen
+	e.dirty = true
 }
 
 func (e *editor) deleteAtCursor() {
@@ -396,6 +404,7 @@ func (e *editor) deleteAtCursor() {
 	} else if e.col >= len(line) {
 		e.col = len(line) - 1
 	}
+	e.dirty = true
 }
 
 func (e *editor) replaceAtCursor(r rune) {
@@ -409,9 +418,13 @@ func (e *editor) replaceAtCursor(r rune) {
 	if e.col >= len(line) {
 		e.col = len(line) - 1
 	}
+	if line[e.col] == r {
+		return
+	}
 	e.saveUndo()
 	line[e.col] = r
 	e.lines[e.row] = line
+	e.dirty = true
 }
 
 func (e *editor) deleteToEndOfLine(andInsert bool) {
@@ -425,6 +438,7 @@ func (e *editor) deleteToEndOfLine(andInsert bool) {
 		}
 		e.saveUndo()
 		e.lines[e.row] = append([]rune(nil), line[:e.col]...)
+		e.dirty = true
 	}
 
 	if andInsert {
@@ -480,11 +494,16 @@ func (e *editor) nextFlashTimer(now time.Time) <-chan time.Time {
 func (e *editor) deleteVisualSelection() {
 	if e.mode == modeVisualLine {
 		sr, er := e.visualRangeRows()
+		if sr == 0 && er == len(e.lines)-1 && len(e.lines) == 1 && len(e.lines[0]) == 0 {
+			e.setMode(modeNormal)
+			return
+		}
 		e.saveUndo()
 		if sr == 0 && er == len(e.lines)-1 {
 			e.lines = [][]rune{{}}
 			e.row = 0
 			e.col = 0
+			e.dirty = true
 			e.setMode(modeNormal)
 			return
 		}
@@ -495,6 +514,7 @@ func (e *editor) deleteVisualSelection() {
 			e.row = sr
 		}
 		e.col = 0
+		e.dirty = true
 		e.setMode(modeNormal)
 		return
 	}
@@ -519,6 +539,7 @@ func (e *editor) deleteVisualSelection() {
 			} else {
 				e.col = min(sc, len(newLine)-1)
 			}
+			e.dirty = true
 		}
 		e.setMode(modeNormal)
 		return
@@ -542,6 +563,7 @@ func (e *editor) deleteVisualSelection() {
 	} else {
 		e.col = min(sc, len(merged)-1)
 	}
+	e.dirty = true
 	e.setMode(modeNormal)
 }
 
@@ -628,6 +650,7 @@ func (e *editor) pasteLinewise(text string) {
 	e.lines = merged
 	e.row = insertAt
 	e.col = 0
+	e.dirty = true
 }
 
 func (e *editor) pasteCharwise(text string) {
@@ -642,6 +665,7 @@ func (e *editor) pasteCharwise(text string) {
 	endRow, endCol := e.insertTextAt(e.row, insertCol, text)
 	e.row = endRow
 	e.col = endCol
+	e.dirty = true
 }
 
 func (e *editor) insertTextAt(row, col int, text string) (int, int) {
@@ -691,11 +715,17 @@ func (e *editor) insertTextAt(row, col int, text string) (int, int) {
 }
 
 func (e *editor) deleteCurrentLine() {
+	if len(e.lines) == 1 && len(e.lines[0]) == 0 {
+		e.row = 0
+		e.col = 0
+		return
+	}
 	e.saveUndo()
 	if len(e.lines) == 1 {
 		e.lines[0] = []rune{}
 		e.row = 0
 		e.col = 0
+		e.dirty = true
 		return
 	}
 
@@ -704,6 +734,7 @@ func (e *editor) deleteCurrentLine() {
 		e.row = len(e.lines) - 1
 	}
 	e.col = 0
+	e.dirty = true
 }
 
 func (e *editor) goToFirstLine() {
@@ -724,6 +755,7 @@ func (e *editor) openLineBelow() {
 	e.lines[insertAt] = []rune{}
 	e.row = insertAt
 	e.col = 0
+	e.dirty = true
 	e.setMode(modeInsert)
 }
 

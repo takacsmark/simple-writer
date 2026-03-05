@@ -52,6 +52,40 @@ func TestCommandLineEnterExecutesQuit(t *testing.T) {
 	}
 }
 
+func TestCommandLineQuitBlockedWhenDirty(t *testing.T) {
+	e := testEditorWithLines("hello")
+	e.mode = modeNormal
+	e.dirty = true
+	e.openCommandLine()
+	e.commandLine = []rune("q")
+	e.commandCol = 1
+
+	quit := e.handleKey(key{t: keyEnter})
+	if quit {
+		t.Fatalf("expected :q to be blocked when dirty")
+	}
+	if !e.commandLineActive {
+		t.Fatalf("expected command line to remain open on dirty quit block")
+	}
+	if e.commandError != quitDirtyError {
+		t.Fatalf("unexpected quit error: got %q, want %q", e.commandError, quitDirtyError)
+	}
+}
+
+func TestCommandLineQuitBangBypassesDirty(t *testing.T) {
+	e := testEditorWithLines("hello")
+	e.mode = modeNormal
+	e.dirty = true
+	e.openCommandLine()
+	e.commandLine = []rune("q!")
+	e.commandCol = 2
+
+	quit := e.handleKey(key{t: keyEnter})
+	if !quit {
+		t.Fatalf("expected :q! to quit even when dirty")
+	}
+}
+
 func TestCommandLineDisplayHasPromptAndFixedWidth(t *testing.T) {
 	e := testEditorWithLines("hello")
 	e.width = 80

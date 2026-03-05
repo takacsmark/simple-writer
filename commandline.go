@@ -2,6 +2,8 @@ package main
 
 import "strings"
 
+const quitDirtyError = "no write since last change (add ! to override)"
+
 func (e *editor) openCommandLine() {
 	e.commandLineActive = true
 	e.commandLine = e.commandLine[:0]
@@ -107,7 +109,13 @@ func (e *editor) executeCommandLine() (quit bool, closePrompt bool) {
 	switch cmd {
 	case "":
 		return false, true
-	case "q", "q!", "quit", "qa", "qa!":
+	case "q", "quit", "qa":
+		if e.dirty {
+			e.commandError = quitDirtyError
+			return false, false
+		}
+		return true, true
+	case "q!", "qa!":
 		return true, true
 	case "w":
 		if err := e.saveBuffer(""); err != nil {

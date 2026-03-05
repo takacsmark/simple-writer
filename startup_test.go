@@ -14,6 +14,9 @@ func TestLoadFromArgsNoFileKeepsDefaultBuffer(t *testing.T) {
 	if len(e.lines) != 1 || string(e.lines[0]) != "" {
 		t.Fatalf("expected default empty buffer, got %#v", e.lines)
 	}
+	if e.dirty {
+		t.Fatalf("expected default startup buffer to be clean")
+	}
 }
 
 func TestLoadFromArgsLoadsTxtFile(t *testing.T) {
@@ -38,6 +41,9 @@ func TestLoadFromArgsLoadsTxtFile(t *testing.T) {
 	}
 	if e.filePath != path {
 		t.Fatalf("filePath: got %q, want %q", e.filePath, path)
+	}
+	if e.dirty {
+		t.Fatalf("opened file should start clean")
 	}
 }
 

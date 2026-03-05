@@ -57,6 +57,7 @@ func (e *editor) openFile(path string) error {
 	e.normalPending = 0
 	e.flashLine = -1
 	e.filePath = path
+	e.dirty = false
 	e.commandLineActive = false
 	e.commandLine = e.commandLine[:0]
 	e.commandCol = 0

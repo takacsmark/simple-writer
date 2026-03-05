@@ -37,6 +37,35 @@ On startup the editor opens in **Normal mode** (`N`).
 If no file is passed, it starts with an empty buffer.
 Only one file can be opened at startup (directories and other extensions are rejected).
 
+## Deployment & Install
+
+GitHub Releases publish versioned tarballs for:
+
+- `darwin/amd64`
+- `darwin/arm64`
+- `linux/amd64`
+- `linux/arm64`
+
+Asset format:
+
+- `distraction-writer_<version>_<os>_<arch>.tar.gz`
+- `SHA256SUMS.txt`
+
+Example install (replace version/target):
+
+```bash
+VERSION=v0.1.0
+OS=darwin
+ARCH=arm64
+ASSET="distraction-writer_${VERSION}_${OS}_${ARCH}.tar.gz"
+
+curl -L -o "${ASSET}" "https://github.com/<owner>/<repo>/releases/download/${VERSION}/${ASSET}"
+curl -L -o SHA256SUMS.txt "https://github.com/<owner>/<repo>/releases/download/${VERSION}/SHA256SUMS.txt"
+shasum -a 256 -c SHA256SUMS.txt
+tar -xzf "${ASSET}"
+./distraction-writer
+```
+
 ## Vim Commands
 
 | Mode                 | Command                       | Action                                              |
@@ -96,3 +125,8 @@ Save notes:
 
 - `:w` on an unnamed buffer shows an error until you provide a file name with `:w <path>`.
 - Save errors are shown in red in the command bar.
+
+Quit safety:
+
+- `:q`, `:quit`, and `:qa` refuse to quit when there are unsaved changes.
+- Use `:q!` or `:qa!` to force quit.

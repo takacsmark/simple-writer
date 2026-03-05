@@ -4,6 +4,8 @@ The no-fluff markdown editor you always wanted: dark canvas, text in the middle,
 
 Simple is a terminal app with Vim bindings, markdown and code highlights.
 
+![Simple Writer](./docs/simple-writer.png)
+
 ## Features
 
 - Full-screen, distraction-free writing surface.

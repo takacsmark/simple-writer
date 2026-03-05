@@ -97,3 +97,23 @@ func TestRenderMarkdownCodeLineDiffersFromPlainLine(t *testing.T) {
 		t.Fatalf("expected non-empty rendered code line")
 	}
 }
+
+func TestRenderMarkdownFrontMatterLine(t *testing.T) {
+	m := newMarkdownRenderer()
+
+	yamlRows, err := m.renderMarkdownFrontMatterLine(frontMatterYAML, []rune("title: Hello"), 72)
+	if err != nil {
+		t.Fatalf("renderMarkdownFrontMatterLine YAML returned error: %v", err)
+	}
+	if len(yamlRows) != 1 {
+		t.Fatalf("YAML rows: got %d, want 1", len(yamlRows))
+	}
+
+	tomlRows, err := m.renderMarkdownFrontMatterLine(frontMatterTOML, []rune(`title = "Hello"`), 72)
+	if err != nil {
+		t.Fatalf("renderMarkdownFrontMatterLine TOML returned error: %v", err)
+	}
+	if len(tomlRows) != 1 {
+		t.Fatalf("TOML rows: got %d, want 1", len(tomlRows))
+	}
+}

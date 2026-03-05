@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/glamour"
 	glamansi "github.com/charmbracelet/glamour/ansi"
@@ -70,6 +73,159 @@ func (m *markdownRenderer) renderMarkdownCodeLine(lang string, line []rune, widt
 	}
 	input := fencedCodeSnippet(lang, string(line))
 	return m.renderMarkdownText(input, width)
+}
+
+func (m *markdownRenderer) renderMarkdownFrontMatterLine(kind frontMatterKind, line []rune, width int) ([]string, error) {
+	lang := "yaml"
+	if kind == frontMatterTOML {
+		lang = "toml"
+	}
+	return m.renderMarkdownCodeLine(lang, line, width)
+}
+
+func (m *markdownRenderer) rawFrontMatterColorSpans(kind frontMatterKind, line []rune, width int) ([]linkColorSpan, error) {
+	if len(line) == 0 {
+		return nil, nil
+	}
+
+	rows, err := m.renderMarkdownFrontMatterLine(kind, line, max(width, len(line)))
+	if err != nil || len(rows) == 0 {
+		return nil, err
+	}
+	return colorSpansForSource(rows[0], string(line)), nil
+}
+
+func colorSpansForSource(rendered, source string) []linkColorSpan {
+	if source == "" {
+		return nil
+	}
+
+	plainRunes, fgByRune := ansiRunesWithForeground(rendered)
+	if len(plainRunes) == 0 || len(fgByRune) != len(plainRunes) {
+		return nil
+	}
+
+	plain := string(plainRunes)
+	startByte := strings.Index(plain, source)
+	if startByte < 0 {
+		return nil
+	}
+	startRune := utf8.RuneCountInString(plain[:startByte])
+	sourceLen := utf8.RuneCountInString(source)
+	if startRune+sourceLen > len(fgByRune) {
+		sourceLen = len(fgByRune) - startRune
+	}
+	if sourceLen <= 0 {
+		return nil
+	}
+
+	out := make([]linkColorSpan, 0, 4)
+	runStart := 0
+	runFG := fgByRune[startRune]
+	for i := 1; i <= sourceLen; i++ {
+		nextFG := ""
+		if i < sourceLen {
+			nextFG = fgByRune[startRune+i]
+		}
+		if i < sourceLen && nextFG == runFG {
+			continue
+		}
+		if runFG != "" {
+			out = append(out, linkColorSpan{
+				start: runStart,
+				end:   i,
+				fg:    runFG,
+			})
+		}
+		runStart = i
+		runFG = nextFG
+	}
+
+	return out
+}
+
+func ansiRunesWithForeground(s string) ([]rune, []string) {
+	plain := make([]rune, 0, len(s))
+	fgs := make([]string, 0, len(s))
+	currentFG := ""
+
+	for i := 0; i < len(s); {
+		if s[i] == '\x1b' && i+1 < len(s) && s[i+1] == '[' {
+			j := i + 2
+			for j < len(s) && s[j] != 'm' {
+				j++
+			}
+			if j < len(s) && s[j] == 'm' {
+				currentFG = applySGRForeground(currentFG, s[i+2:j])
+				i = j + 1
+				continue
+			}
+		}
+
+		r, size := utf8.DecodeRuneInString(s[i:])
+		if r == utf8.RuneError && size == 1 {
+			i++
+			continue
+		}
+		plain = append(plain, r)
+		fgs = append(fgs, currentFG)
+		i += size
+	}
+
+	return plain, fgs
+}
+
+func applySGRForeground(currentFG, params string) string {
+	if params == "" {
+		return ""
+	}
+
+	parts := strings.Split(params, ";")
+	for i := 0; i < len(parts); i++ {
+		if parts[i] == "" {
+			continue
+		}
+
+		code, err := strconv.Atoi(parts[i])
+		if err != nil {
+			continue
+		}
+		switch {
+		case code == 0 || code == 39:
+			currentFG = ""
+		case code >= 30 && code <= 37:
+			currentFG = fmt.Sprintf("\x1b[%dm", code)
+		case code >= 90 && code <= 97:
+			currentFG = fmt.Sprintf("\x1b[%dm", code)
+		case code == 38:
+			if i+1 >= len(parts) {
+				continue
+			}
+			mode, err := strconv.Atoi(parts[i+1])
+			if err != nil {
+				continue
+			}
+			if mode == 5 && i+2 < len(parts) {
+				v, err := strconv.Atoi(parts[i+2])
+				if err == nil {
+					currentFG = fmt.Sprintf("\x1b[38;5;%dm", v)
+				}
+				i += 2
+				continue
+			}
+			if mode == 2 && i+4 < len(parts) {
+				r, errR := strconv.Atoi(parts[i+2])
+				g, errG := strconv.Atoi(parts[i+3])
+				b, errB := strconv.Atoi(parts[i+4])
+				if errR == nil && errG == nil && errB == nil {
+					currentFG = fmt.Sprintf("\x1b[38;2;%d;%d;%dm", r, g, b)
+				}
+				i += 4
+			}
+		}
+	}
+
+	return currentFG
 }
 
 func fencedCodeSnippet(lang, code string) string {

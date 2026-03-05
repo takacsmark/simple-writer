@@ -202,3 +202,46 @@ func TestVisualRowsCodeBlockCursorLineRawOnly(t *testing.T) {
 		t.Fatalf("closing fence kind: got %v, want markdown", got)
 	}
 }
+
+func TestVisualRowsFrontMatterCursorLineRawOnly(t *testing.T) {
+	e := testEditorWithLines(
+		"---",
+		"title: Hello",
+		"draft: true",
+		"---",
+		"# Body",
+	)
+	e.mode = modeNormal
+	e.row = 1
+	e.width = 80
+	e.height = 24
+	e.markdown = newMarkdownRenderer()
+
+	rows := e.visualRows()
+	if len(rows) < 5 {
+		t.Fatalf("expected at least 5 visual rows, got %d", len(rows))
+	}
+
+	kindByLine := map[int]lineRenderKind{}
+	for _, r := range rows {
+		if _, seen := kindByLine[r.lineIndex]; !seen {
+			kindByLine[r.lineIndex] = r.kind
+		}
+	}
+
+	if got := kindByLine[0]; got != lineRenderMarkdown {
+		t.Fatalf("opening frontmatter delimiter kind: got %v, want markdown", got)
+	}
+	if got := kindByLine[1]; got != lineRenderRaw {
+		t.Fatalf("active frontmatter line kind: got %v, want raw", got)
+	}
+	if got := kindByLine[2]; got != lineRenderMarkdown {
+		t.Fatalf("other frontmatter line kind: got %v, want markdown", got)
+	}
+	if got := kindByLine[3]; got != lineRenderMarkdown {
+		t.Fatalf("closing frontmatter delimiter kind: got %v, want markdown", got)
+	}
+	if got := kindByLine[4]; got != lineRenderMarkdown {
+		t.Fatalf("body line kind: got %v, want markdown", got)
+	}
+}

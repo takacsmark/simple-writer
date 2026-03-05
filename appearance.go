@@ -97,13 +97,24 @@ func (e *editor) renderWrappedSegment(lineIdx, start int, chunk []rune, width in
 			baseFg = fg
 		}
 	}
-	spans := rawLinkColorSpans(line)
+	spans := make([]linkColorSpan, 0, 8)
+	if kind, ok := e.frontMatterKindForLine(lineIdx); ok {
+		if e.markdown == nil {
+			e.markdown = newMarkdownRenderer()
+		}
+		fmSpans, err := e.markdown.rawFrontMatterColorSpans(kind, line, max(width, len(line)))
+		if err == nil {
+			spans = append(spans, fmSpans...)
+		}
+	}
+	spans = append(spans, rawLinkColorSpans(line)...)
 
 	fgForCol := func(col int, hasChar bool) string {
 		if !hasChar {
 			return baseFg
 		}
-		for _, span := range spans {
+		for i := len(spans) - 1; i >= 0; i-- {
+			span := spans[i]
 			if col >= span.start && col < span.end {
 				return span.fg
 			}

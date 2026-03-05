@@ -10,6 +10,7 @@ A minimal terminal writing app in Go with Vim-style editing.
 - Vim-style modes with bottom-left indicator (`N`, `I`, `V`, `L`).
 - Live word counter on the bottom-right (`<count>w`) using the same style color as the mode indicator.
 - Live Markdown rendering via Glamour for non-active lines.
+- Top-of-file frontmatter support (`---` YAML / `+++` TOML) with syntax-aware rendering.
 - Active line is always raw in Insert/Normal mode.
 - In Visual/Visual Line mode, all selected lines render raw.
 - Markdown tables render in both edit and preview flows; selecting any table line makes the whole table raw.

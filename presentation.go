@@ -59,6 +59,13 @@ func (e *editor) visualRows() []visualRow {
 	cw := e.contentWidth()
 	out := make([]visualRow, 0, len(e.lines))
 	for i := 0; i < len(e.lines); {
+		start, end, kind, isFrontMatter := e.frontMatterBlockAt(i)
+		if isFrontMatter {
+			out = append(out, e.visualRowsForFrontMatterBlock(start, end, kind, cw)...)
+			i = end + 1
+			continue
+		}
+
 		start, end, block, isCode := e.codeBlockStartAt(i)
 		if isCode {
 			out = append(out, e.visualRowsForCodeBlock(start, end, block, cw)...)
@@ -93,6 +100,30 @@ func (e *editor) visualRows() []visualRow {
 		i++
 	}
 
+	return out
+}
+
+func (e *editor) visualRowsForFrontMatterBlock(start, end int, kind frontMatterKind, width int) []visualRow {
+	out := make([]visualRow, 0, end-start+1)
+	for i := start; i <= end; i++ {
+		if e.lineRenderKind(i) == lineRenderRaw {
+			out = append(out, rawWrappedRows(i, e.lines[i], width)...)
+			continue
+		}
+
+		rendered, err := e.markdown.renderMarkdownFrontMatterLine(kind, e.lines[i], width)
+		if err != nil {
+			out = append(out, rawWrappedRows(i, e.lines[i], width)...)
+			continue
+		}
+		for _, row := range rendered {
+			out = append(out, visualRow{
+				lineIndex: i,
+				kind:      lineRenderMarkdown,
+				rendered:  row,
+			})
+		}
+	}
 	return out
 }
 

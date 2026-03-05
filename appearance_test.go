@@ -67,6 +67,84 @@ func TestRawLinkColorSpans(t *testing.T) {
 	}
 }
 
+func TestRawFrontMatterColorSpansYAML(t *testing.T) {
+	m := newMarkdownRenderer()
+	line := []rune(`title: "Hello" # note`)
+	spans, err := m.rawFrontMatterColorSpans(frontMatterYAML, line, 72)
+	if err != nil {
+		t.Fatalf("rawFrontMatterColorSpans returned error: %v", err)
+	}
+	if len(spans) == 0 {
+		t.Fatalf("expected non-empty frontmatter color spans")
+	}
+	if !spansContainFG(spans, ansiFg256(140)) {
+		t.Fatalf("expected spans to contain key purple fg %q, got %#v", ansiFg256(140), spans)
+	}
+	if !spansContainFG(spans, ansiFg256(173)) {
+		t.Fatalf("expected spans to contain value orange fg %q, got %#v", ansiFg256(173), spans)
+	}
+}
+
+func TestRenderWrappedSegmentUsesFrontMatterColors(t *testing.T) {
+	e := &editor{
+		lines: [][]rune{
+			[]rune("---"),
+			[]rune(`title: "Hello"`),
+			[]rune("---"),
+		},
+		mode:      modeNormal,
+		row:       1,
+		col:       0,
+		flashLine: -1,
+		style:     DefaultAppearance.toStyleCodes(),
+		markdown:  newMarkdownRenderer(),
+	}
+
+	out := e.renderWrappedSegment(1, 0, e.lines[1], 20, -1)
+	if !strings.Contains(out, ansiFg256(140)) {
+		t.Fatalf("expected output to contain frontmatter key color %q, got %q", ansiFg256(140), out)
+	}
+	if !strings.Contains(out, ansiFg256(173)) {
+		t.Fatalf("expected output to contain frontmatter value color %q, got %q", ansiFg256(173), out)
+	}
+}
+
+func TestFrontMatterRawPaletteMatchesRenderedTheme(t *testing.T) {
+	e := &editor{
+		lines: [][]rune{
+			[]rune("---"),
+			[]rune(`title: "Hello"`),
+			[]rune("---"),
+		},
+		mode:     modeNormal,
+		row:      1,
+		col:      0,
+		style:    DefaultAppearance.toStyleCodes(),
+		markdown: newMarkdownRenderer(),
+	}
+
+	renderedRows, err := e.markdown.renderMarkdownFrontMatterLine(frontMatterYAML, e.lines[1], 72)
+	if err != nil || len(renderedRows) == 0 {
+		t.Fatalf("renderMarkdownFrontMatterLine failed: err=%v rows=%d", err, len(renderedRows))
+	}
+	renderedSpans := colorSpansForSource(renderedRows[0], string(e.lines[1]))
+	rawOut := e.renderWrappedSegment(1, 0, e.lines[1], 20, -1)
+	for _, span := range renderedSpans {
+		if !strings.Contains(rawOut, span.fg) {
+			t.Fatalf("raw output missing rendered fg %q; raw=%q rendered=%q", span.fg, rawOut, renderedRows[0])
+		}
+	}
+}
+
+func spansContainFG(spans []linkColorSpan, fg string) bool {
+	for _, span := range spans {
+		if span.fg == fg {
+			return true
+		}
+	}
+	return false
+}
+
 func TestRenderFrameKeepsSelectionInsideTextArea(t *testing.T) {
 	e := &editor{
 		lines:     [][]rune{[]rune("selected")},

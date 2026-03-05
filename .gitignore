@@ -1,0 +1,16 @@
+# Binaries
+distraction-writer
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go build/test artifacts
+*.test
+*.out
+coverage.out
+
+# Editor/OS noise
+.DS_Store
+Thumbs.db

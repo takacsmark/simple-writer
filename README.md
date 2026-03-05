@@ -8,6 +8,13 @@ A minimal terminal writing app in Go with Vim-style editing.
 - Centered writing column (`72` chars wide).
 - Dark, uniform background with configurable colors in one place ([`appearance.go`](appearance.go)).
 - Vim-style modes with bottom-left indicator (`N`, `I`, `V`, `L`).
+- Live Markdown rendering via Glamour for non-active lines.
+- Active line is always raw in Insert/Normal mode.
+- In Visual/Visual Line mode, all selected lines render raw.
+- Markdown tables render in both edit and preview flows; selecting any table line makes the whole table raw.
+- Fenced code blocks render with Glamour syntax highlighting on non-raw lines.
+- Headings keep distinct per-level colors in both raw and rendered states.
+- Links render as label-only in preview, while raw syntax stays visible (with label/url color accents).
 - Visual selection highlight and `yy` copy flash feedback.
 - Undo/redo, line/word motions, and clipboard-aware yank/paste.
 - Cross-platform clipboard support (macOS, Linux Wayland/X11, Windows).
@@ -27,7 +34,7 @@ go run .
 | Insert | `Enter` | New line |
 | Insert | `Backspace` | Delete backward |
 | Insert | `←/→/↑/↓` | Move cursor |
-| Insert | `Esc` | Switch to Normal |
+| Insert | `Esc` | Switch to Normal (cursor shifts left when possible) |
 | Normal | `h j k l` or `←/→/↑/↓` | Move cursor |
 | Normal | `w` | Word forward |
 | Normal | `b` | Word backward |
@@ -48,7 +55,8 @@ go run .
 | Normal | `p` | Paste after cursor |
 | Normal | `u` | Undo |
 | Normal | `Ctrl-r` | Redo |
-| Visual / Visual Line | `h j k l`, `w`, `b`, `0`, `$`, `gg`, `G` | Move selection |
+| Visual / Visual Line | `h j k l` or `←/→/↑/↓` | Move selection |
+| Visual / Visual Line | `w`, `b`, `0`, `$`, `gg`, `G` | Selection motions |
 | Visual / Visual Line | `v` / `V` | Toggle visual mode type / exit |
 | Visual / Visual Line | `y` | Yank selection |
 | Visual / Visual Line | `x` | Delete selection |

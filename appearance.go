@@ -89,24 +89,49 @@ func (e *editor) isSelectedCell(lineIdx, col int, hasChar bool) bool {
 
 func (e *editor) renderWrappedSegment(lineIdx, start int, chunk []rune, width int, flashLine int) string {
 	var b strings.Builder
-	selected := false
-	setSelected := func(v bool) {
-		if v {
-			b.WriteString(e.style.bgSelection)
-			b.WriteString(e.style.fgText)
-		} else {
-			b.WriteString(e.style.bgDark)
-			b.WriteString(e.style.fgText)
+	baseFg := e.style.fgText
+	line := []rune(nil)
+	if lineIdx >= 0 && lineIdx < len(e.lines) {
+		line = e.lines[lineIdx]
+		if fg, ok := headingAnsiFg(rawHeadingLevel(e.lines[lineIdx])); ok {
+			baseFg = fg
 		}
 	}
+	spans := rawLinkColorSpans(line)
+
+	fgForCol := func(col int, hasChar bool) string {
+		if !hasChar {
+			return baseFg
+		}
+		for _, span := range spans {
+			if col >= span.start && col < span.end {
+				return span.fg
+			}
+		}
+		return baseFg
+	}
+
+	setStyle := func(selected bool, fg string) {
+		if selected {
+			b.WriteString(e.style.bgSelection)
+		} else {
+			b.WriteString(e.style.bgDark)
+		}
+		b.WriteString(fg)
+	}
+
+	currentSelected := false
+	currentFg := ""
 
 	for i := 0; i < width; i++ {
 		hasChar := i < len(chunk)
 		col := start + i
 		shouldSelect := e.isSelectedCell(lineIdx, col, hasChar) || lineIdx == flashLine
-		if shouldSelect != selected {
-			setSelected(shouldSelect)
-			selected = shouldSelect
+		fg := fgForCol(col, hasChar)
+		if shouldSelect != currentSelected || fg != currentFg {
+			setStyle(shouldSelect, fg)
+			currentSelected = shouldSelect
+			currentFg = fg
 		}
 		if hasChar {
 			b.WriteRune(chunk[i])
@@ -115,11 +140,170 @@ func (e *editor) renderWrappedSegment(lineIdx, start int, chunk []rune, width in
 		}
 	}
 
-	if selected {
-		setSelected(false)
+	return b.String()
+}
+
+type linkColorSpan struct {
+	start int
+	end   int
+	fg    string
+}
+
+func rawLinkColorSpans(line []rune) []linkColorSpan {
+	if len(line) == 0 {
+		return nil
 	}
 
-	return b.String()
+	out := make([]linkColorSpan, 0, 2)
+	for i := 0; i < len(line); {
+		if line[i] == '!' && i+1 < len(line) && line[i+1] == '[' && !isEscapedRune(line, i) {
+			i++
+			continue
+		}
+		if line[i] != '[' || isEscapedRune(line, i) {
+			i++
+			continue
+		}
+
+		textEnd, ok := scanBracketRunesEnd(line, i)
+		if !ok {
+			i++
+			continue
+		}
+
+		j := textEnd + 1
+		for j < len(line) && (line[j] == ' ' || line[j] == '\t') {
+			j++
+		}
+
+		if j < len(line) && line[j] == '(' {
+			destEnd, ok := scanParenRunesEnd(line, j)
+			if ok {
+				out = append(out,
+					linkColorSpan{start: i, end: textEnd + 1, fg: linkLabelAnsiFg()},
+					linkColorSpan{start: j, end: destEnd + 1, fg: linkDestAnsiFg()},
+				)
+				i = destEnd + 1
+				continue
+			}
+		}
+
+		if j < len(line) && line[j] == '[' {
+			refEnd, ok := scanBracketRunesEnd(line, j)
+			if ok {
+				out = append(out,
+					linkColorSpan{start: i, end: textEnd + 1, fg: linkLabelAnsiFg()},
+					linkColorSpan{start: j, end: refEnd + 1, fg: linkDestAnsiFg()},
+				)
+				i = refEnd + 1
+				continue
+			}
+		}
+
+		i++
+	}
+
+	return out
+}
+
+func scanBracketRunesEnd(line []rune, start int) (int, bool) {
+	depth := 0
+	for i := start; i < len(line); i++ {
+		if isEscapedRune(line, i) {
+			continue
+		}
+		switch line[i] {
+		case '[':
+			depth++
+		case ']':
+			depth--
+			if depth == 0 {
+				return i, true
+			}
+		}
+	}
+	return 0, false
+}
+
+func scanParenRunesEnd(line []rune, start int) (int, bool) {
+	depth := 0
+	quote := rune(0)
+	inAngle := false
+	for i := start; i < len(line); i++ {
+		if isEscapedRune(line, i) {
+			continue
+		}
+
+		ch := line[i]
+		if quote != 0 {
+			if ch == quote {
+				quote = 0
+			}
+			continue
+		}
+		if inAngle {
+			if ch == '>' {
+				inAngle = false
+			}
+			continue
+		}
+
+		switch ch {
+		case '"', '\'':
+			quote = ch
+		case '<':
+			inAngle = true
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth == 0 {
+				return i, true
+			}
+		}
+	}
+	return 0, false
+}
+
+func isEscapedRune(line []rune, i int) bool {
+	backslashes := 0
+	for j := i - 1; j >= 0 && line[j] == '\\'; j-- {
+		backslashes++
+	}
+	return backslashes%2 == 1
+}
+
+func rawHeadingLevel(line []rune) int {
+	spaceCount := 0
+	i := 0
+	for i < len(line) && line[i] == ' ' && spaceCount < 3 {
+		i++
+		spaceCount++
+	}
+	if i >= len(line) || line[i] != '#' {
+		return 0
+	}
+
+	level := 0
+	for i < len(line) && line[i] == '#' && level < 6 {
+		level++
+		i++
+	}
+	if level == 0 || level > 6 {
+		return 0
+	}
+	// Require a separator space after the hash run for ATX headings.
+	if i < len(line) && line[i] != ' ' && line[i] != '\t' {
+		return 0
+	}
+	return level
+}
+
+func applyBaseStyleAfterReset(s, base string) string {
+	if s == "" || !strings.Contains(s, ansiReset) {
+		return s
+	}
+	return strings.ReplaceAll(s, ansiReset, ansiReset+base)
 }
 
 func (e *editor) renderFrame() string {
@@ -128,10 +312,9 @@ func (e *editor) renderFrame() string {
 	leftPad := max(0, (e.width-cw)/2)
 	rightPad := max(0, e.width-leftPad-cw)
 	flashLine := e.activeFlashLine(time.Now())
-
-	wrapped := e.wrappedLines()
-	cursorVisualRow, cursorVisualCol := e.cursorVisual()
-	e.ensureCursorVisible()
+	rows := e.visualRows()
+	cursorVisualRow, cursorVisualCol := e.cursorVisualWithRows(rows)
+	e.ensureCursorRowVisible(cursorVisualRow)
 
 	cursorScreenRow := cursorVisualRow - e.scroll + 1
 	if cursorScreenRow < 1 {
@@ -161,13 +344,15 @@ func (e *editor) renderFrame() string {
 			b.WriteString(strings.Repeat(" ", leftPad))
 		}
 
-		if visualIdx >= 0 && visualIdx < len(wrapped) {
-			seg := wrapped[visualIdx]
-			chunk := e.lines[seg.lineIndex][seg.start:seg.end]
-			if len(chunk) > cw {
-				chunk = chunk[:cw]
+		if visualIdx >= 0 && visualIdx < len(rows) {
+			row := rows[visualIdx]
+			if row.kind == lineRenderRaw {
+				b.WriteString(e.renderWrappedSegment(row.lineIndex, row.rawStart, row.rawChunk, cw, flashLine))
+			} else {
+				base := e.style.bgDark + e.style.fgText
+				b.WriteString(applyBaseStyleAfterReset(row.rendered, base))
+				b.WriteString(base)
 			}
-			b.WriteString(e.renderWrappedSegment(seg.lineIndex, seg.start, chunk, cw, flashLine))
 		} else {
 			b.WriteString(strings.Repeat(" ", cw))
 		}

@@ -66,12 +66,6 @@ type inputParser struct {
 	buf []byte
 }
 
-type wrappedLine struct {
-	lineIndex int
-	start     int
-	end       int
-}
-
 type editorState struct {
 	lines [][]rune
 	row   int
@@ -96,6 +90,7 @@ type editor struct {
 	flashLine     int
 	flashUntil    time.Time
 	style         styleCodes
+	markdown      *markdownRenderer
 }
 
 func newEditor() *editor {
@@ -104,6 +99,7 @@ func newEditor() *editor {
 		mode:      modeInsert,
 		flashLine: -1,
 		style:     DefaultAppearance.toStyleCodes(),
+		markdown:  newMarkdownRenderer(),
 	}
 }
 
@@ -243,81 +239,6 @@ func (e *editor) bodyHeight() int {
 		return 1
 	}
 	return e.height - 1
-}
-
-func (e *editor) wrappedLines() []wrappedLine {
-	cw := e.contentWidth()
-	out := make([]wrappedLine, 0, len(e.lines))
-	for i, line := range e.lines {
-		if len(line) == 0 {
-			out = append(out, wrappedLine{lineIndex: i, start: 0, end: 0})
-			continue
-		}
-		for s := 0; s < len(line); s += cw {
-			end := min(len(line), s+cw)
-			out = append(out, wrappedLine{lineIndex: i, start: s, end: end})
-		}
-	}
-	return out
-}
-
-func (e *editor) cursorVisual() (row, col int) {
-	cw := e.contentWidth()
-	line := e.lines[e.row]
-	c := e.col
-
-	if e.mode == modeInsert {
-		if c < 0 {
-			c = 0
-		}
-		if c > len(line) {
-			c = len(line)
-		}
-	} else {
-		maxCol := 0
-		if len(line) > 0 {
-			maxCol = len(line) - 1
-		}
-		if c < 0 {
-			c = 0
-		}
-		if c > maxCol {
-			c = maxCol
-		}
-	}
-
-	for i := 0; i < e.row; i++ {
-		lineLen := len(e.lines[i])
-		if lineLen == 0 {
-			row++
-			continue
-		}
-		row += ((lineLen - 1) / cw) + 1
-	}
-
-	row += c / cw
-	col = c % cw
-
-	if e.mode == modeInsert && len(line) > 0 && c == len(line) && c%cw == 0 {
-		row++
-		col = 0
-	}
-
-	return row, col
-}
-
-func (e *editor) ensureCursorVisible() {
-	cursorRow, _ := e.cursorVisual()
-	body := e.bodyHeight()
-	if cursorRow < e.scroll {
-		e.scroll = cursorRow
-	}
-	if cursorRow >= e.scroll+body {
-		e.scroll = cursorRow - body + 1
-	}
-	if e.scroll < 0 {
-		e.scroll = 0
-	}
 }
 
 func (e *editor) setMode(m mode) {

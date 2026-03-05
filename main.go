@@ -73,30 +73,33 @@ type editorState struct {
 }
 
 type editor struct {
-	lines         [][]rune
-	row           int
-	col           int
-	scroll        int
-	mode          mode
-	width         int
-	height        int
-	normalPending rune
-	undo          []editorState
-	redo          []editorState
-	visualRow     int
-	visualCol     int
-	clipText      string
-	clipLinewise  bool
-	flashLine     int
-	flashUntil    time.Time
-	style         styleCodes
-	markdown      *markdownRenderer
+	lines             [][]rune
+	row               int
+	col               int
+	scroll            int
+	mode              mode
+	width             int
+	height            int
+	normalPending     rune
+	undo              []editorState
+	redo              []editorState
+	visualRow         int
+	visualCol         int
+	clipText          string
+	clipLinewise      bool
+	flashLine         int
+	flashUntil        time.Time
+	style             styleCodes
+	markdown          *markdownRenderer
+	commandLineActive bool
+	commandLine       []rune
+	commandCol        int
 }
 
 func newEditor() *editor {
 	return &editor{
 		lines:     [][]rune{{}},
-		mode:      modeInsert,
+		mode:      modeNormal,
 		flashLine: -1,
 		style:     DefaultAppearance.toStyleCodes(),
 		markdown:  newMarkdownRenderer(),
@@ -1003,6 +1006,12 @@ func max(a, b int) int {
 }
 
 func main() {
+	ed := newEditor()
+	if err := ed.loadFromArgs(os.Args[1:]); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to open file: %v\n", err)
+		os.Exit(1)
+	}
+
 	fd := int(os.Stdin.Fd())
 	state, err := term.MakeRaw(fd)
 	if err != nil {
@@ -1019,8 +1028,6 @@ func main() {
 		_ = stdout.Flush()
 	}
 	defer cleanup()
-
-	ed := newEditor()
 	_, _ = stdout.WriteString(ansiAltScreenOn + ansiHideCursor + ansiClear + ansiHome + ed.style.bgDark + ed.style.fgText)
 	_ = stdout.Flush()
 

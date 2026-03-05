@@ -138,6 +138,8 @@ func (e *editor) handleNormal(k key) bool {
 			e.setMode(modeInsert)
 		case 'o':
 			e.openLineBelow()
+		case ':':
+			e.openCommandLine()
 		}
 	}
 	return false
@@ -221,6 +223,9 @@ func (e *editor) handleVisual(k key) bool {
 }
 
 func (e *editor) handleKey(k key) bool {
+	if e.commandLineActive {
+		return e.handleCommandLine(k)
+	}
 	if e.mode == modeInsert {
 		return e.handleInsert(k)
 	}

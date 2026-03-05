@@ -11,6 +11,7 @@ A minimal terminal writing app in Go with Vim-style editing.
 - Live word counter on the bottom-right (`<count>w`) using the same style color as the mode indicator.
 - Live Markdown rendering via Glamour for non-active lines.
 - Top-of-file frontmatter support (`---` YAML / `+++` TOML) with syntax-aware rendering.
+- Vim-style command line in Normal mode: `:` opens a centered one-line prompt (`>`), `Esc` closes it.
 - Active line is always raw in Insert/Normal mode.
 - In Visual/Visual Line mode, all selected lines render raw.
 - Markdown tables render in both edit and preview flows; selecting any table line makes the whole table raw.
@@ -25,7 +26,15 @@ A minimal terminal writing app in Go with Vim-style editing.
 
 ```bash
 go run .
+go run . notes.md
+go run . /path/to/notes.txt
 ```
+
+Startup file loading accepts a single `.md` or `.txt` file path.
+
+On startup the editor opens in **Normal mode** (`N`).
+If no file is passed, it starts with an empty buffer.
+Only one file can be opened at startup (directories and other extensions are rejected).
 
 ## Vim Commands
 
@@ -57,9 +66,25 @@ go run .
 | Normal               | `p`                           | Paste after cursor                                  |
 | Normal               | `u`                           | Undo                                                |
 | Normal               | `Ctrl-r`                      | Redo                                                |
+| Normal               | `:`                           | Open command line                                   |
+| Command line         | text input                    | Enter command text                                  |
+| Command line         | `Backspace`                   | Delete backward                                     |
+| Command line         | `←/→`                         | Move command cursor                                 |
+| Command line         | `Enter`                       | Execute command                                     |
+| Command line         | `Esc`                         | Close command line                                  |
 | Visual / Visual Line | `h j k l` or `←/→/↑/↓`        | Move selection                                      |
 | Visual / Visual Line | `w`, `b`, `0`, `$`, `gg`, `G` | Selection motions                                   |
 | Visual / Visual Line | `v` / `V`                     | Toggle visual mode type / exit                      |
 | Visual / Visual Line | `y`                           | Yank selection                                      |
 | Visual / Visual Line | `x`                           | Delete selection                                    |
 | Visual / Visual Line | `Esc`                         | Exit to Normal                                      |
+
+## Command-Line Commands
+
+Supported `:` commands:
+
+- `:q`
+- `:q!`
+- `:quit`
+- `:qa`
+- `:qa!`

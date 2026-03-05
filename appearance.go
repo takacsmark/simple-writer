@@ -17,6 +17,8 @@ type appearanceConfig struct {
 	Highlight     rgb
 	Text          rgb
 	ModeIndicator rgb
+	CommandText   rgb
+	CommandPrompt rgb
 }
 
 type styleCodes struct {
@@ -24,6 +26,8 @@ type styleCodes struct {
 	bgSelection     string
 	fgText          string
 	fgModeIndicator string
+	fgCommandText   string
+	fgCommandPrompt string
 }
 
 var DefaultAppearance = appearanceConfig{
@@ -31,6 +35,8 @@ var DefaultAppearance = appearanceConfig{
 	Highlight:     rgb{R: 43, G: 45, B: 51},
 	Text:          rgb{R: 231, G: 231, B: 232},
 	ModeIndicator: rgb{R: 109, G: 109, B: 114},
+	CommandText:   rgb{R: 223, G: 225, B: 228},
+	CommandPrompt: rgb{R: 173, G: 176, B: 182},
 }
 
 func (c appearanceConfig) toStyleCodes() styleCodes {
@@ -39,6 +45,8 @@ func (c appearanceConfig) toStyleCodes() styleCodes {
 		bgSelection:     ansiBgRGB(c.Highlight),
 		fgText:          ansiFgRGB(c.Text),
 		fgModeIndicator: ansiFgRGB(c.ModeIndicator),
+		fgCommandText:   ansiFgRGB(c.CommandText),
+		fgCommandPrompt: ansiFgRGB(c.CommandPrompt),
 	}
 }
 
@@ -410,6 +418,27 @@ func (e *editor) renderFrame() string {
 				b.WriteString(e.style.fgModeIndicator)
 				b.WriteString(string(counterRunes))
 			}
+		}
+
+		if e.commandLineActive {
+			cmdWidth := e.commandLineWidth()
+			cmdStart := e.commandLineStartCol(cmdWidth)
+			display, cursorOffset := e.commandLineDisplay(cmdWidth)
+			b.WriteString(fmt.Sprintf("\x1b[%d;%dH", e.height, cmdStart))
+			b.WriteString(e.style.bgSelection)
+			displayRunes := []rune(display)
+			if len(displayRunes) > 0 {
+				b.WriteString(e.style.fgCommandPrompt)
+				b.WriteRune(displayRunes[0])
+			}
+			if len(displayRunes) > 1 {
+				b.WriteString(e.style.fgCommandText)
+				b.WriteString(string(displayRunes[1:]))
+			}
+			b.WriteString(e.style.bgDark)
+			b.WriteString(e.style.fgText)
+			cursorScreenRow = e.height
+			cursorScreenCol = min(e.width, max(1, cmdStart+cursorOffset))
 		}
 	}
 

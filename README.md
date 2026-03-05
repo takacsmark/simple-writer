@@ -1,6 +1,8 @@
 # Simple Writer
 
-A minimal terminal writing app in Go with Vim-style editing.
+The no-fluff markdown editor you always wanted: dark canvas, text in the middle, and a word counter.
+
+Simple is a terminal app with Vim bindings, markdown and code highlights.
 
 ## Features
 

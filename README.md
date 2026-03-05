@@ -1,4 +1,4 @@
-# Distraction Writer
+# Simple Writer
 
 A minimal terminal writing app in Go with Vim-style editing.
 
@@ -48,7 +48,7 @@ GitHub Releases publish versioned tarballs for:
 
 Asset format:
 
-- `distraction-writer_<version>_<os>_<arch>.tar.gz`
+- `simple-writer_<version>_<os>_<arch>.tar.gz`
 - `SHA256SUMS.txt`
 
 Example install (replace version/target):
@@ -57,13 +57,13 @@ Example install (replace version/target):
 VERSION=v0.1.0
 OS=darwin
 ARCH=arm64
-ASSET="distraction-writer_${VERSION}_${OS}_${ARCH}.tar.gz"
+ASSET="simple-writer_${VERSION}_${OS}_${ARCH}.tar.gz"
 
 curl -L -o "${ASSET}" "https://github.com/<owner>/<repo>/releases/download/${VERSION}/${ASSET}"
 curl -L -o SHA256SUMS.txt "https://github.com/<owner>/<repo>/releases/download/${VERSION}/SHA256SUMS.txt"
 shasum -a 256 -c SHA256SUMS.txt
 tar -xzf "${ASSET}"
-./distraction-writer
+./simple
 ```
 
 ## Vim Commands

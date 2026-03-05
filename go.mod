@@ -1,4 +1,4 @@
-module distraction-writer
+module simple-writer
 
 go 1.23.0
 

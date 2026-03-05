@@ -1,6 +1,6 @@
 # Simple Writer
 
-The no-fluff markdown editor you always wanted: dark canvas, text in the middle, and a word counter.
+The no-fluff markdown editor you always wanted: dark canvas, text in the middle, and a word counter (bottom right ↘).
 
 Simple is a terminal app with Vim bindings, markdown and code highlights.
 

@@ -316,3 +316,80 @@ func (e *editor) ensureCursorVisible() {
 	cursorRow, _ := e.cursorVisualWithRows(e.visualRows())
 	e.ensureCursorRowVisible(cursorRow)
 }
+
+func (e *editor) maxScrollForRows(rows []visualRow) int {
+	body := e.bodyHeight()
+	if len(rows) <= body {
+		return 0
+	}
+	return len(rows) - body
+}
+
+func (e *editor) scrollWindowBy(delta int) {
+	if delta == 0 {
+		return
+	}
+
+	rows := e.visualRows()
+	if len(rows) == 0 {
+		return
+	}
+
+	maxScroll := e.maxScrollForRows(rows)
+	nextScroll := min(max(0, e.scroll+delta), maxScroll)
+	if nextScroll == e.scroll {
+		return
+	}
+	e.scroll = nextScroll
+
+	body := e.bodyHeight()
+	cursorRow, cursorCol := e.cursorVisualWithRows(rows)
+	if cursorRow < e.scroll {
+		e.moveCursorToVisualRow(rows, e.scroll, cursorCol)
+		return
+	}
+
+	if cursorRow >= e.scroll+body {
+		e.moveCursorToVisualRow(rows, e.scroll+body-1, cursorCol)
+	}
+}
+
+func (e *editor) pageDown() {
+	step := max(1, e.bodyHeight()-1)
+	e.scrollWindowBy(step)
+}
+
+func (e *editor) pageUp() {
+	step := max(1, e.bodyHeight()-1)
+	e.scrollWindowBy(-step)
+}
+
+func (e *editor) moveCursorToVisualRow(rows []visualRow, targetRow, preferredCol int) {
+	if len(rows) == 0 {
+		return
+	}
+	targetRow = min(max(0, targetRow), len(rows)-1)
+	vr := rows[targetRow]
+	e.row = min(max(0, vr.lineIndex), len(e.lines)-1)
+
+	line := e.lines[e.row]
+	if len(line) == 0 {
+		e.col = 0
+		return
+	}
+
+	lineStart := targetRow
+	for lineStart > 0 && rows[lineStart-1].lineIndex == vr.lineIndex {
+		lineStart--
+	}
+	rowOffset := targetRow - lineStart
+
+	if vr.kind == lineRenderRaw {
+		col := vr.rawStart + preferredCol
+		e.col = min(max(0, col), len(line)-1)
+		return
+	}
+
+	col := rowOffset*e.contentWidth() + preferredCol
+	e.col = min(max(0, col), len(line)-1)
+}

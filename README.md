@@ -97,6 +97,12 @@ Supported targets:
 | Normal               | `p`                           | Paste after cursor                                  |
 | Normal               | `u`                           | Undo                                                |
 | Normal               | `Ctrl-r`                      | Redo                                                |
+| Normal               | `Ctrl-f`                      | Page down                                           |
+| Normal               | `PageDown`                    | Page down                                           |
+| Normal               | `Ctrl-b`                      | Page up                                             |
+| Normal               | `PageUp`                      | Page up                                             |
+| Normal               | `Ctrl-e`                      | Scroll text down by one line                        |
+| Normal               | `Ctrl-y`                      | Scroll text up by one line                          |
 | Normal               | `:`                           | Open command line                                   |
 | Command line         | text input                    | Enter command text                                  |
 | Command line         | `Backspace`                   | Delete backward                                     |

@@ -31,9 +31,25 @@ func (e *editor) handleNormal(k key) bool {
 	switch k.t {
 	case keyCtrlC:
 		return true
+	case keyCtrlB:
+		fallthrough
+	case keyPageUp:
+		e.normalPending = 0
+		e.pageUp()
+	case keyCtrlE:
+		e.normalPending = 0
+		e.scrollWindowBy(1)
+	case keyCtrlF:
+		fallthrough
+	case keyPageDown:
+		e.normalPending = 0
+		e.pageDown()
 	case keyCtrlR:
 		e.normalPending = 0
 		e.redoAction()
+	case keyCtrlY:
+		e.normalPending = 0
+		e.scrollWindowBy(-1)
 	case keyEscape:
 		e.normalPending = 0
 	case keyLeft:

@@ -50,7 +50,13 @@ const (
 	keyBackspace
 	keyEscape
 	keyCtrlC
+	keyCtrlB
+	keyCtrlE
+	keyCtrlF
 	keyCtrlR
+	keyCtrlY
+	keyPageUp
+	keyPageDown
 	keyUp
 	keyDown
 	keyLeft
@@ -180,8 +186,20 @@ func (p *inputParser) feed(data []byte) []key {
 		case b == 3:
 			keys = append(keys, key{t: keyCtrlC})
 			p.buf = p.buf[1:]
+		case b == 2:
+			keys = append(keys, key{t: keyCtrlB})
+			p.buf = p.buf[1:]
+		case b == 5:
+			keys = append(keys, key{t: keyCtrlE})
+			p.buf = p.buf[1:]
+		case b == 6:
+			keys = append(keys, key{t: keyCtrlF})
+			p.buf = p.buf[1:]
 		case b == 18:
 			keys = append(keys, key{t: keyCtrlR})
+			p.buf = p.buf[1:]
+		case b == 25:
+			keys = append(keys, key{t: keyCtrlY})
 			p.buf = p.buf[1:]
 		case b == 13 || b == 10:
 			keys = append(keys, key{t: keyEnter})
@@ -190,6 +208,18 @@ func (p *inputParser) feed(data []byte) []key {
 			keys = append(keys, key{t: keyBackspace})
 			p.buf = p.buf[1:]
 		case b == 27:
+			if len(p.buf) >= 4 && p.buf[1] == '[' && p.buf[3] == '~' {
+				switch p.buf[2] {
+				case '5':
+					keys = append(keys, key{t: keyPageUp})
+					p.buf = p.buf[4:]
+					continue
+				case '6':
+					keys = append(keys, key{t: keyPageDown})
+					p.buf = p.buf[4:]
+					continue
+				}
+			}
 			if len(p.buf) >= 3 && p.buf[1] == '[' {
 				switch p.buf[2] {
 				case 'A':
